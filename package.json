@@ -4,7 +4,7 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
-		"dev": "nodemon src/index.js",
+		"dev": "nodemon src/index.mjs",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],
@@ -15,6 +15,8 @@
 		"nodemon": "^3.1.7"
 	},
 	"dependencies": {
-		"dotenv": "^16.4.6"
+		"dotenv": "^16.4.6",
+		"express": "^4.21.1",
+		"mongoose": "^8.8.3"
 	}
 }
