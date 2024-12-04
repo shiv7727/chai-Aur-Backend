@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
+dotenv.config();
 // openssl rand -base64 32 to generate a random string secret key
 const app = express();
 
