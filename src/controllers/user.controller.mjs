@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.mjs";
 import { asyncHandler } from "../utils/asyncHandler.mjs";
 import { ApiError } from "../utils/ApiError.mjs";
 import { uploadOnCloudinary } from "../utils/cloudinary.mjs";
+import { removeTempFile } from "../utils/fileUtils.mjs";
 
 const registerUser = asyncHandler(async (req, res, next) => {
   // step 1 get user details from request body
@@ -27,7 +28,14 @@ const registerUser = asyncHandler(async (req, res, next) => {
   });
   const { error } = userValidationSchema.validate(req.body);
   if (error) {
-    throw new ApiError(400, error.details[0].message);
+    // Remove files if they were uploaded before validation error
+    if (req.files?.avatar?.[0]?.path) {
+      removeTempFile(req.files.avatar[0]?.path);
+    }
+    if (req.files?.coverImage?.[0]?.path) {
+      removeTempFile(req.files.coverImage[0]?.path);
+    }
+    throw new ApiError(400, "Validation failed", error.details[0].message);
   }
   const { username, email } = req.body;
 

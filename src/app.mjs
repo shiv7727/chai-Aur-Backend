@@ -23,4 +23,9 @@ import userRouter from "./routes/user.routes.mjs";
 // routes declaration
 app.use("/api/v1/users", userRouter);
 
+// Use the error handling middleware after all routes , basically this is the last middleware
+
+import { errorHandler } from "./middlewares/ErrorHandler.middleware.mjs";
+app.use(errorHandler);
+
 export { app };
