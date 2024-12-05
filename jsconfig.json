@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "allowJs": true
+  },
+  "include": [
+    "node_modules/**/*",
+    "src/**/*"
+  ]
+}
