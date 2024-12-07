@@ -9,9 +9,13 @@ import { removeTempFile } from "../utils/fileUtils.mjs";
 const generateAccessTokenAndRefreshToken = async (user) => {
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
-  const updatedUser = (
-    await User.findByIdAndUpdate(user._id, { $set: { refreshToken } })
-  ).isSelected("-password -refreshToken -__v");
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    { $set: { refreshToken } },
+    { new: true }
+  ).select("-password -refreshToken -__v");
+
   return {
     accessToken,
     refreshToken,
