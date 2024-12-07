@@ -5,21 +5,20 @@ import { asyncHandler } from "../utils/asyncHandler.mjs";
 import { ApiError } from "../utils/ApiError.mjs";
 import { uploadOnCloudinary } from "../utils/cloudinary.mjs";
 import { removeTempFile } from "../utils/fileUtils.mjs";
+import jwt from "jsonwebtoken";
 
-const generateAccessTokenAndRefreshToken = async (user) => {
+const generateAccessTokenAndRefreshToken = async (userId) => {
+  const user = await User.findById(userId);
+
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
-  const updatedUser = await User.findByIdAndUpdate(
-    user._id,
-    { $set: { refreshToken } },
-    { new: true }
-  ).select("-password -refreshToken -__v");
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: true });
 
   return {
     accessToken,
     refreshToken,
-    user: updatedUser,
   };
 };
 
@@ -147,7 +146,8 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     throw new ApiError(401, null, "Inavlid credentails");
   }
-  const updatedUser = await generateAccessTokenAndRefreshToken(user);
+  const updatedUser = await generateAccessTokenAndRefreshToken(user._id);
+  const newUser = await User.findById(user._id);
 
   const options = {
     httpOnly: true,
@@ -161,7 +161,7 @@ const loginUser = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user: updatedUser.user,
+          user: newUser,
           accessToken: updatedUser.accessToken,
           refreshToken: updatedUser.refreshToken,
         },
@@ -189,4 +189,54 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  console.log(req.cookies.refreshToken);
+  console.log(req.cookies.accessToken);
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "unauthorized rquest");
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = await User.findById(decodedToken._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token ");
+    }
+
+    if (incomingRefreshToken !== user.refreshToken) {
+      throw new ApiError(401, "refresh token is expired or invalid");
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAccessTokenAndRefreshToken(user);
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken: newRefreshToken },
+          "access token refreshed successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error.message || "Invalid refresh token ");
+  }
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
